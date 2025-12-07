@@ -14,6 +14,11 @@ const api = axios.create({
   timeout: 30000,
 });
 
+// Debug log
+console.log('🔧 API Service Initialized');
+console.log('🌐 API Base URL:', API_URL);
+console.log('📱 Current Origin:', window.location.origin);
+
 // Request interceptor to add token and fix URLs
 api.interceptors.request.use(
   (config) => {
@@ -23,12 +28,18 @@ api.interceptors.request.use(
     }
     
     // Log request for debugging
-    console.log('Making request to:', config.url);
+    console.log('📤 Making request to:', config.method?.toUpperCase(), config.url);
+    console.log('📊 Full config:', {
+      baseURL: config.baseURL,
+      url: config.url,
+      method: config.method,
+      headers: config.headers
+    });
     
     return config;
   },
   (error) => {
-    console.error('Request error:', error);
+    console.error('❌ Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -36,14 +47,23 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
-    console.log('Response from:', response.config.url, response.status);
+    console.log('✅ Response from:', response.config.url, 'Status:', response.status);
+    console.log('📦 Response data:', response.data);
     return response;
   },
   (error) => {
-    console.error('API Error:', error.config?.url, error.response?.status, error.message);
+    console.error('❌ API Error Details:');
+    console.error('URL:', error.config?.url);
+    console.error('Method:', error.config?.method);
+    console.error('Full Error:', error);
+    console.error('Error Code:', error.code);
+    console.error('Error Message:', error.message);
+    console.error('Response Status:', error.response?.status);
+    console.error('Response Data:', error.response?.data);
+    console.error('No Response?', !error.response ? 'Yes' : 'No');
     
     if (error.code === 'ECONNABORTED') {
-      toast.error('Request timeout. Please try again.');
+      toast.error('Request timeout. The server is taking too long to respond.');
     } else if (error.response) {
       const { status, data } = error.response;
       
@@ -65,8 +85,14 @@ api.interceptors.response.use(
         toast.error(message);
       }
     } else if (error.request) {
-      toast.error('Network error. Please check your connection.');
+      console.error('No response received. This could be:');
+      console.error('- CORS issue');
+      console.error('- Server not running');
+      console.error('- Network firewall');
+      console.error('- Server timeout');
+      toast.error('Cannot connect to server. Please check if the backend is running.');
     } else {
+      console.error('Request setup error:', error.message);
       toast.error('An unexpected error occurred.');
     }
     
@@ -74,13 +100,64 @@ api.interceptors.response.use(
   }
 );
 
-// Test backend connection
+// Enhanced test backend connection
 export const testBackendConnection = async () => {
+  console.log('🔄 Testing backend connection...');
+  console.log('Target URL:', API_URL + 'health');
+  
   try {
-    const response = await api.get('/health');
-    return { connected: true, data: response.data };
+    console.log('⏳ Making health check request...');
+    const startTime = Date.now();
+    
+    const response = await api.get('/health', {
+      timeout: 10000, // 10 seconds
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+    
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    
+    console.log('✅ Connection successful!');
+    console.log('Response time:', duration + 'ms');
+    console.log('Response status:', response.status);
+    console.log('Response data:', response.data);
+    
+    return { 
+      connected: true, 
+      data: response.data,
+      responseTime: duration,
+      message: `Connected to ${API_URL} in ${duration}ms`
+    };
+    
   } catch (error) {
-    return { connected: false, error: error.message };
+    console.error('❌ Connection failed!');
+    console.error('Error type:', error.name);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    
+    let errorMessage = `Cannot connect to ${API_URL}`;
+    
+    if (error.code === 'ECONNABORTED') {
+      errorMessage = 'Connection timeout. Server may be starting up or overloaded.';
+    } else if (error.message.includes('Network Error')) {
+      errorMessage = 'Network error. Check CORS configuration on server.';
+    } else if (error.response) {
+      errorMessage = `Server responded with ${error.response.status}: ${error.response.statusText}`;
+    }
+    
+    return { 
+      connected: false, 
+      error: errorMessage,
+      details: {
+        url: API_URL,
+        code: error.code,
+        message: error.message,
+        status: error.response?.status
+      }
+    };
   }
 };
 

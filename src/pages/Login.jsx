@@ -28,7 +28,7 @@ const Login = () => {
   const checkBackendConnection = async () => {
     try {
       setBackendStatus('checking');
-      const response = await fetch('http://localhost:8000/health', {
+      const response = await fetch('https://coffee-backend-1.onrender.com/health', {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -127,7 +127,7 @@ const Login = () => {
           {backendStatus === 'error' && (
             <div className="mt-3 p-3 bg-red-50 rounded border border-red-200">
               <p className="text-sm text-red-700">
-                Cannot connect to backend server at http://localhost:8000
+                Cannot connect to backend server at https://coffee-backend-1.onrender.com
               </p>
               <p className="text-xs text-red-600 mt-1">
                 Make sure the FastAPI server is running on port 8000

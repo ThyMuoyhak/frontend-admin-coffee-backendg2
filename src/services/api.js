@@ -2,7 +2,7 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_URL = 'https://coffee-backend-1.onrender.com';
+const API_URL = 'https://coffee-backend-1.onrender.com/';
 
 // Create axios instance with default config
 const api = axios.create({
